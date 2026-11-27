@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Off-road · LR3</title><link rel="stylesheet" href="/static/common.css">
+<script>if (!JSON.parse(localStorage.getItem("lr3prefs") || "{}").theme) document.documentElement.dataset.theme = "dark";</script>
+<style>
+  .hero { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+  .hero .value { font-size: 44px; }
+  .ride { display:grid; grid-template-columns: minmax(260px, 420px) 1fr; gap: 16px; align-items: center; }
+  @media (max-width: 700px) { .ride { grid-template-columns: 1fr; } }
+  .ride svg { width: 100%; height: auto; }
+  .ride .body { fill: var(--surface-2); stroke: var(--axis); stroke-width: 2; }
+  .ride .wheel { fill: var(--axis); }
+  .ride .barbg { fill: var(--grid); }
+  .ride .bar { fill: var(--series-1); }
+  .ride .zero { stroke: var(--text-secondary); stroke-width: 1; }
+  .ride text { fill: var(--text-primary); font-size: 15px; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .ride text.sub { fill: var(--text-secondary); font-size: 11px; font-weight: 400; }
+  .tilt { display:flex; gap:24px; align-items:center; flex-wrap:wrap; }
+  .tilt svg { width: 150px; height: 110px; }
+  .tilt .ground { stroke: var(--text-secondary); stroke-width: 1; stroke-dasharray: 4 4; }
+  .tilt .truck { fill: var(--surface-2); stroke: var(--text-primary); stroke-width: 2; }
+</style></head>
+<body>
+<main>
+  <div id="src" class="banner">Connecting…</div>
+
+  <section class="grid tiles hero" id="hero"></section>
+  <section class="grid tiles hero" id="temps"></section>
+
+  <section class="card">
+    <h2>Ride height <span style="text-transform:none;font-weight:400">· relative to standard height</span></h2>
+    <div class="ride">
+      <svg viewBox="0 0 300 380" role="img" aria-label="Ride height at each corner, top-down view" id="ridesvg"></svg>
+      <div>
+        <div class="tile"><div class="label">Suspension height</div><div class="value" id="hmode">—</div></div>
+        <div class="tile" style="margin-top:12px"><div class="label">Cross-axle articulation</div><div class="value" id="artic">—</div>
+          <div class="muted">(FL + RR) − (FR + RL). Large values mean one diagonal is drooping. Watch the rear locker and wheel lift.</div></div>
+        <div id="ridenote" class="muted" style="margin-top:12px"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Tilt <span style="text-transform:none;font-weight:400">· from this device's motion sensors</span></h2>
+    <div class="tilt">
+      <div><svg viewBox="0 0 150 110" id="pitchsvg" aria-label="Pitch"></svg><div class="tile"><div class="label">Pitch (nose up +)</div><div class="value" id="pitch">—</div></div></div>
+      <div><svg viewBox="0 0 150 110" id="rollsvg" aria-label="Roll"></svg><div class="tile"><div class="label">Roll (right side down +)</div><div class="value" id="roll">—</div></div></div>
+      <div style="max-width:340px">
+        <button id="tilton" class="primary">Enable tilt sensor</button> <button id="zero">Set level here</button>
+        <p class="muted">Mount the phone firmly in portrait, facing you. Park on level ground and press “Set level here”. Most browsers only allow motion sensors over HTTPS or on localhost. Treat these numbers as a guide, not a safety limit.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="grid charts">
+    <div id="c-cool"></div><div id="c-trans"></div>
+  </section>
+</main>
+<script src="/static/common.js"></script>
+<script>
+const { $, esc, fmt, STATUS, statusHTML } = LR3;
+LR3.header("/offroad");
+
+const HERO = [
+  { key: "gear", label: "Gear", render: (r) => r.selector == null ? null : (r.selector === "D" && r.gear ? `D${r.gear}` : r.selector) },
+  { key: "range", label: "Transfer range", render: (r) => r.range ?? null },
+  { key: "terrain", label: "Terrain Response", render: (r) => r.terrain ?? null, small: true },
+  { key: "speed", label: "Speed", unit: "km/h", digits: 0 },
+];
+const TEMPS = [
+  { key: "coolant", label: "Coolant", unit: "°C", status: STATUS.coolant, digits: 0 },
+  { key: "trans_temp", label: "Transmission fluid", unit: "°C", status: STATUS.trans_temp, digits: 0 },
+  { key: "voltage", label: "Voltage", unit: "V", status: STATUS.voltage, digits: 1 },
+  { key: "rear_locker", label: "Rear diff lock", unit: "%", digits: 0 },
+];
+const tile = (t) => `<div class="card tile" id="t-${t.key}"><div class="label">${esc(t.label)}</div><div class="value"${t.small ? ' style="font-size:26px;padding:9px 0"' : ""}>—</div><div class="st"></div></div>`;
+$("#hero").innerHTML = HERO.map(tile).join(""); $("#temps").innerHTML = TEMPS.map(tile).join("");
+
+const charts = [
+  new LR3.TrendChart($("#c-cool"), { title: "Coolant · last 10 min", unit: "°C", window: 600, series: [{ key: "coolant", label: "Coolant" }], refs: [110] }),
+  new LR3.TrendChart($("#c-trans"), { title: "Transmission fluid · last 10 min", unit: "°C", window: 600, series: [{ key: "trans_temp", label: "Trans" }], refs: [125] }),
+];
+
+// --- ride height diagram ---
+const CORNERS = { height_fl: [70, 95, "FL"], height_fr: [230, 95, "FR"], height_rl: [70, 290, "RL"], height_rr: [230, 290, "RR"] };
+const RANGE = 120; // ±mm shown by the bars
+function drawRide(r) {
+  let g = `<rect class="body" x="95" y="30" width="110" height="320" rx="26"/>
+    <text class="sub" x="150" y="22" text-anchor="middle">FRONT</text>`;
+  for (const [k, [cx, cy, name]] of Object.entries(CORNERS)) {
+    const v = r[k];
+    const wx = cx < 150 ? 80 : 205;
+    g += `<rect class="wheel" x="${wx}" y="${cy - 32}" width="15" height="64" rx="4"/>`;
+    // vertical bar: centre line = standard height; up = raised
+    const bx = cx < 150 ? 22 : 262, top = cy - 50, h = 100, mid = top + h / 2;
+    g += `<rect class="barbg" x="${bx}" y="${top}" width="16" height="${h}" rx="4"/>`;
+    if (typeof v === "number") {
+      const len = Math.max(-1, Math.min(1, v / RANGE)) * (h / 2);
+      g += `<rect class="bar" x="${bx}" y="${len >= 0 ? mid - len : mid}" width="16" height="${Math.max(2, Math.abs(len))}" rx="${Math.abs(len) > 6 ? 4 : 1}"/>`;
+    }
+    g += `<line class="zero" x1="${bx - 3}" x2="${bx + 19}" y1="${mid}" y2="${mid}"/>`;
+    const [s, u] = fmt("mm", v, LR3.prefs.units === "metric" ? 0 : 1);
+    const tx = cx < 150 ? 104 : 196, anchor = cx < 150 ? "start" : "end";
+    g += `<text x="${tx}" y="${cy}" text-anchor="${anchor}">${typeof v === "number" && v > 0 ? "+" : ""}${esc(s)}</text>
+      <text class="sub" x="${tx}" y="${cy + 15}" text-anchor="${anchor}">${name} ${esc(u)}</text>`;
+  }
+  $("#ridesvg").innerHTML = g;
+  const hs = Object.keys(CORNERS).map((k) => r[k]).filter((v) => typeof v === "number");
+  if (hs.length === 4) {
+    const avg = hs.reduce((a, b) => a + b) / 4;
+    $("#hmode").textContent = avg > 35 ? "Off-road" : avg < -35 ? "Access" : "Standard";
+    const art = (r.height_fl + r.height_rr) - (r.height_fr + r.height_rl);
+    const [s, u] = fmt("mm", art, LR3.prefs.units === "metric" ? 0 : 1);
+    $("#artic").innerHTML = `${esc(s)}<span class="unit">${esc(u)}</span>`;
+    $("#ridenote").textContent = "";
+  } else {
+    $("#hmode").textContent = "—"; $("#artic").textContent = "—";
+    $("#ridenote").innerHTML = "This source has no ride-height data. Generic OBD-II can't read the air suspension module. Export a log from your GAP IIDTool and run <code>lr3 dash --source replay:yourlog.csv</code>, or try <code>--source sim:offroad</code>.";
+  }
+}
+
+let lastDraw = 0;
+LR3.live((added, all) => {
+  const r = all[all.length - 1], now = performance.now();
+  if (now - lastDraw < 240) return; lastDraw = now;
+  for (const t of [...HERO, ...TEMPS]) {
+    const el = $(`#t-${t.key}`);
+    let s, u = "";
+    if (t.render) { const v = t.render(r); s = v ?? "—"; }
+    else { [s, u] = fmt(t.unit, r[t.key], t.digits); }
+    el.querySelector(".value").innerHTML = `${esc(s)}${u ? `<span class="unit">${esc(u)}</span>` : ""}`;
+    el.querySelector(".st").innerHTML = t.status && typeof r[t.key] === "number" ? statusHTML(t.status(r[t.key], r)) : "";
+  }
+  drawRide(r);
+  charts.forEach((c) => c.update(all));
+}, { onStatus: (err) => err && ($("#src").innerHTML = `<span class="status critical"><span class="dot"></span>${esc(err)}</span>`) });
+LR3.api("/api/info").then((i) => { $("#src").innerHTML = i.source ? `Data source: <b>${esc(i.source)}</b>` : "No live data source."; });
+
+// --- tilt from device orientation ---
+let zero = JSON.parse(localStorage.getItem("lr3tiltzero") || '{"p":0,"r":0}'), raw = null;
+function truckSVG(angle, side) {
+  const body = side ? `<rect class="truck" x="45" y="35" width="60" height="40" rx="8"/>` : `<rect class="truck" x="20" y="40" width="110" height="32" rx="7"/><rect class="truck" x="35" y="25" width="70" height="20" rx="5"/>`;
+  return `<line class="ground" x1="0" x2="150" y1="85" y2="85"/><g transform="rotate(${-angle} 75 70)">${body}</g>`;
+}
+function drawTilt() {
+  const p = raw ? raw.p - zero.p : 0, r = raw ? raw.r - zero.r : 0;
+  $("#pitchsvg").innerHTML = truckSVG(p, false); $("#rollsvg").innerHTML = truckSVG(-r, true);
+  $("#pitch").textContent = raw ? `${p.toFixed(0)}°` : "—"; $("#roll").textContent = raw ? `${r.toFixed(0)}°` : "—";
+}
+function onOrient(e) { if (e.beta == null) return; raw = { p: e.beta - 90, r: e.gamma }; drawTilt(); }
+$("#tilton").onclick = async () => {
+  try {
+    if (typeof DeviceOrientationEvent !== "undefined" && DeviceOrientationEvent.requestPermission) {
+      if ((await DeviceOrientationEvent.requestPermission()) !== "granted") throw new Error("Permission denied");
+    }
+    window.addEventListener("deviceorientation", onOrient);
+    $("#tilton").textContent = "Tilt sensor on";
+  } catch (err) { alert("Couldn't start the tilt sensor: " + err.message); }
+};
+$("#zero").onclick = () => { if (raw) { zero = { ...raw }; localStorage.setItem("lr3tiltzero", JSON.stringify(zero)); drawTilt(); } };
+drawTilt();
+</script>
+</body></html>

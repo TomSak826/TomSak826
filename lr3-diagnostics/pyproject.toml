@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lr3diag"
+version = "0.1.0"
+description = "Diagnostics, workshop-manual search and maintenance tracking for a 2007 Land Rover LR3"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+pdf = ["pypdf>=4"]          # index workshop-manual PDFs
+serial = ["pyserial>=3.5"]  # talk to a real ELM327 adapter
+dev = ["pytest>=7"]
+all = ["pypdf>=4", "pyserial>=3.5", "pytest>=7"]
+
+[project.scripts]
+lr3 = "lr3diag.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["lr3diag*"]
+
+[tool.setuptools.package-data]
+lr3diag = ["data/*.json"]

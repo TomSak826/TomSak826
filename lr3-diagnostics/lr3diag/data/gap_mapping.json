@@ -1,0 +1,28 @@
+{
+  "_readme": "Maps CSV column headers from an exported log (e.g. GAP IIDTool) to lr3diag channels. The header names below are PLACEHOLDERS: open one of your exported logs, copy its real column headers here, and set scale/offset if the units differ (values must be metric: °C, km/h, mm). Matching ignores case, spaces and punctuation. Copy this file to ~/.lr3diag/gap_mapping.json to customise it.",
+  "time_column": "Time",
+  "time_scale": 1.0,
+  "columns": {
+    "Engine Speed": "rpm",
+    "Vehicle Speed": "speed",
+    "Engine Coolant Temperature": "coolant",
+    "Intake Air Temperature": "iat",
+    "Engine Load": "load",
+    "Throttle Position": "throttle",
+    "Mass Air Flow": "maf",
+    "Short Term Fuel Trim Bank 1": "stft1",
+    "Long Term Fuel Trim Bank 1": "ltft1",
+    "Short Term Fuel Trim Bank 2": "stft2",
+    "Long Term Fuel Trim Bank 2": "ltft2",
+    "Battery Voltage": "voltage",
+    "Transmission Fluid Temperature": "trans_temp",
+    "Gear Selector Position": "selector",
+    "Current Gear": "gear",
+    "Transfer Box Range": "range",
+    "Terrain Response Mode": "terrain",
+    "Ride Height Front Left": "height_fl",
+    "Ride Height Front Right": "height_fr",
+    "Ride Height Rear Left": "height_rl",
+    "Ride Height Rear Right": "height_rr"
+  }
+}
