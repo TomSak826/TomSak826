@@ -124,8 +124,92 @@ def map_row(raw: dict[str, str], mapping: dict) -> dict:
     return out
 
 
+GEAR_NAMES = {"first": 1, "second": 2, "third": 3, "fourth": 4, "fifth": 5, "sixth": 6}
+SELECTOR_NAMES = {"reverse": "R", "neutral": "N", "park": "P"}
+
+
+def _gap_value(rule: dict, state: str, value: str):
+    """Convert one GAP reading (state text + numeric value) using a mapping rule."""
+    if rule["channel"] == "gear":
+        st_ = state.strip().lower()
+        if st_ in GEAR_NAMES:
+            return GEAR_NAMES[st_]
+        if st_ in SELECTOR_NAMES:
+            return SELECTOR_NAMES[st_]
+        return None
+    if value.strip() == "":
+        return state.strip() or None
+    try:
+        return round(float(value) * rule.get("scale", 1.0) + rule.get("offset", 0.0), 3)
+    except ValueError:
+        return value.strip()
+
+
+def read_gap_log(path: str | Path, mapping: dict | None = None, step: float = 0.5) -> tuple[list[dict], dict]:
+    """Read a GAP IIDTool live-data CSV export.
+
+    GAP logs put each channel in its own block of columns
+    (``name, time, state, value, , ,``), and every channel has its own
+    timestamps. The channels are merged onto a common time grid of ``step``
+    seconds, holding each channel's most recent value.
+    Returns (rows, info) where info has the VIN/model/date header lines.
+    """
+    import bisect
+
+    mapping = mapping or load_mapping()
+    rules = {}
+    for col, rule in mapping.get("columns", {}).items():
+        rules[_norm(col)] = {"channel": rule} if isinstance(rule, str) else rule
+
+    lines = Path(path).read_text(encoding="utf-8-sig", errors="replace").splitlines()
+    hdr = next(i for i, ln in enumerate(lines) if ln.startswith("Live Value Name"))
+    info = {"header": [ln.strip() for ln in lines[:hdr] if ln.strip()], "unmapped": set(), "channels": {}}
+    series: dict[str, list[tuple[float, object]]] = {}
+    for row in csv.reader(lines[hdr + 1:]):
+        for i in range(0, len(row) - 3, 6):
+            name, t, state, value = row[i:i + 4]
+            if not name or not t:
+                continue
+            rule = rules.get(_norm(name))
+            if not rule:
+                info["unmapped"].add(name)
+                continue
+            v = _gap_value(rule, state, value)
+            if v is None:
+                continue
+            series.setdefault(rule["channel"], []).append((float(t), v))
+            info["channels"][rule["channel"]] = name
+    if not series:
+        return [], info
+    for s in series.values():
+        s.sort(key=lambda x: x[0])
+    times = {ch: [x[0] for x in s] for ch, s in series.items()}
+    start = max(s[0][0] for s in series.values())   # wait until every channel has a value
+    end = max(s[-1][0] for s in series.values())
+    rows = []
+    t = start
+    while t < end + step:
+        row: dict = {"t": round(t - start, 2)}
+        for ch, s in series.items():
+            j = bisect.bisect_right(times[ch], t) - 1
+            if j >= 0:
+                row[ch] = s[j][1]
+        rows.append(row)
+        t += step
+    info["unmapped"] = sorted(info["unmapped"])
+    return rows, info
+
+
+def is_gap_log(path: str | Path) -> bool:
+    with Path(path).open(encoding="utf-8-sig", errors="replace") as f:
+        head = [next(f, "") for _ in range(20)]
+    return any(ln.startswith("Live Value Name") for ln in head)
+
+
 def read_log(path: str | Path, mapping: dict | None = None) -> list[dict]:
-    """Read a CSV log into samples. Native lr3diag logs need no mapping."""
+    """Read a CSV log into samples. Native lr3diag logs and GAP exports are detected automatically."""
+    if is_gap_log(path):
+        return read_gap_log(path, mapping)[0]
     mapping = mapping or load_mapping()
     with Path(path).open(newline="", encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)

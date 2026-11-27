@@ -9,14 +9,40 @@ from lr3diag.sources import ReplaySource, open_source, read_log
 from lr3diag.web.server import LiveFeed, make_handler
 
 
-def test_gap_style_replay(tmp_path):
-    f = tmp_path / "gap.csv"
-    f.write_text("Time,Engine Coolant Temperature,Current Gear,Ride Height Front Left,Unrelated\n"
-                 "10.0,88,3,12.5,x\n10.5,89,4,13.0,y\n")
+def test_flat_csv_with_mapping(tmp_path):
+    f = tmp_path / "other.csv"
+    f.write_text("Time,Engine Coolant Temperature,Ride Height Front Left,Unrelated\n"
+                 "10.0,88,12.5,x\n10.5,89,13.0,y\n")
     rows = read_log(f)
-    assert rows[0] == {"coolant": 88.0, "gear": 3.0, "height_fl": 12.5, "t": 0.0}
+    assert rows[0] == {"coolant": 88.0, "height_fl": 12.5, "t": 0.0}
     assert rows[1]["t"] == 0.5
     assert ReplaySource(str(f)).sample()["coolant"] == 88.0
+
+
+GAP_SAMPLE = (
+    "VIN TESTVIN0000000000\nModel L319 - LR3 2007 \nLog test saved on the Sun\nIIDControl 4.3.0\n\n\n"
+    "Live Value Name:, Times:, States:, Values:,,,Live Value Name:, Times:, States:, Values:,,,"
+    "Live Value Name:, Times:, States:, Values:,,,Event name:,Speed:(mph),Time:,\n"
+    '"Vehicle speed",0,"","",,,"Transmission current gear",0,"Undefined","",,,"Long term fuel trim (bank 1)",0,"","",,,\n'
+    '"Vehicle speed",0.1,"","0.000000",,,"Transmission current gear",0.1,"First","1",,,"Long term fuel trim (bank 1)",0.2,"","7.812500",,,\n'
+    '"Vehicle speed",1.0,"","31.068550",,,"Transmission current gear",1.1,"Reverse","2",,,"Long term fuel trim (bank 1)",1.3,"","9.375000",,,\n'
+    ',,,,,,"Transmission current gear",1.6,"Third","4",,,,,,,,,\n'
+)
+
+
+def test_gap_native_log(tmp_path):
+    from lr3diag.sources import is_gap_log, read_gap_log
+    f = tmp_path / "IIDTool_Log.csv"
+    f.write_text(GAP_SAMPLE)
+    assert is_gap_log(f)
+    rows, info = read_gap_log(f, step=0.5)
+    assert info["header"][0].startswith("VIN")
+    assert rows[0]["t"] == 0.0 and rows[0]["gear"] == 1 and rows[0]["ltft1"] == 7.812
+    last = rows[-1]
+    assert abs(last["speed"] - 50.0) < 0.01        # mph converted to km/h
+    assert last["gear"] == 3 and last["ltft1"] == 9.375
+    assert any(r.get("gear") == "R" for r in rows)
+    assert read_log(f) == rows                      # auto-detected
 
 
 def test_sim_source_has_offroad_channels():

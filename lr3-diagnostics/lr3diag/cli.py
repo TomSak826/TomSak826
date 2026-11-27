@@ -161,15 +161,36 @@ def cmd_obd_pids(args):
 
 # -- analysis / dtc / dashboard ---------------------------------------------------
 def cmd_analyze(args):
-    from .sources import read_log
-    rows = read_log(args.file) if not args.mapping else read_log(args.file, __import__("json").load(open(args.mapping)))
+    import json
+    from .sources import is_gap_log, read_gap_log, read_log
+    mapping = json.load(open(args.mapping)) if args.mapping else None
+    if is_gap_log(args.file):
+        rows, info = read_gap_log(args.file, mapping)
+        print("GAP IIDTool log: " + " | ".join(info["header"]))
+        if info["unmapped"]:
+            print("Channels not mapped (add them to gap_mapping.json): " + ", ".join(info["unmapped"]))
+    else:
+        rows = read_log(args.file, mapping)
     if not rows:
         sys.exit("No rows in file.")
-    print(f"{len(rows)} samples, {rows[-1].get('t', 0):.0f} s\n")
+    print(f"{len(rows)} samples, {rows[-1].get('t', 0) / 60:.1f} min\n")
     print(f"  {'channel':<12}{'min':>10}{'mean':>10}{'max':>10}")
     for k, s in analysis.summarize(rows).items():
         if k != "t":
             print(f"  {k:<12}{s['min']:>10.2f}{s['mean']:>10.2f}{s['max']:>10.2f}")
+    missing = [c for c in ("rpm", "coolant", "maf", "load", "voltage") if not any(r.get(c) is not None for r in rows)]
+    if missing:
+        print(f"\n  Not in this log: {', '.join(missing)}. Some checks are skipped or less certain.")
+
+    if any(r.get("stft1") is not None for r in rows):
+        print("\nFuel trim by driving condition (average %, total = short + long term)")
+        print(f"  {'condition':<22}{'samples':>8}   {'B1 short':>8}{'long':>7}{'total':>7}   {'B2 short':>8}{'long':>7}{'total':>7}")
+        for b in analysis.trim_breakdown(rows):
+            def cell(k):
+                return f"{b[k]:+.1f}" if k in b else "—"
+            print(f"  {b['band']:<22}{b['n']:>8}   {cell('stft1'):>8}{cell('ltft1'):>7}{cell('total1'):>7}"
+                  f"   {cell('stft2'):>8}{cell('ltft2'):>7}{cell('total2'):>7}")
+
     findings = analysis.analyze(rows)
     print(f"\nFindings: {len(findings) or 'none'}")
     for f in findings:

@@ -41,12 +41,16 @@ To use it from your phone, run `lr3 dash --host 0.0.0.0` on a laptop and open `h
 | GAP IIDTool log export | `replay:mylog.csv` (`@N` for speed) | ✅ | ✅ if the log contains them |
 | Simulator | `sim[:scenario]` | ✅ | ✅ (simulated) |
 
-**About the GAP IIDTool:** it talks to the Land Rover modules (air suspension, transmission, transfer box) that generic OBD-II can't reach. GAP doesn't publish a live-streaming API, so this tool reads **logs exported from the GAP app** instead. Column names vary, so edit the mapping:
+**About the GAP IIDTool:** it talks to the Land Rover modules (air suspension, transmission, transfer box) that generic OBD-II can't reach. GAP doesn't publish a live-streaming API, so this tool reads **live-data logs exported from the IIDControl app**. The GAP format is detected automatically: each channel has its own timestamps, and they're merged onto a common 0.5 s timeline.
 
-1. Export a live-data log from the GAP app as CSV.
-2. Copy `lr3diag/data/gap_mapping.json` to `~/.lr3diag/gap_mapping.json`.
-3. Change the left-hand names to match your log's column headers. Set `scale`/`offset` if the units aren't metric.
-4. Run `lr3 dash --source replay:mylog.csv`, or `lr3 analyze mylog.csv`.
+```bash
+lr3 analyze IIDTool_Log_fuel_trim_reset.csv        # fuel-trim breakdown + automatic checks
+lr3 dash --source replay:IIDTool_Log_fuel_trim_reset.csv@5
+```
+
+Channel names confirmed from a real IIDControl 4.3 export (throttle, gear, short/long fuel trims, vehicle speed) are already mapped. If a log has channels the tool doesn't know yet, `lr3 analyze` lists them under "not mapped". Add them to your own copy of `gap_mapping.json` (`~/.lr3diag/gap_mapping.json`), with `scale`/`offset` if the units aren't metric.
+
+**Tip:** for the most useful fuel-trim logs, also record engine speed, coolant temperature, MAF and calculated load in the GAP app. Then the tool can confirm the engine was warm and compare airflow with expected values.
 
 For live engine data while driving, an ELM327 or OBDLink adapter alongside the GAP tool works well.
 
