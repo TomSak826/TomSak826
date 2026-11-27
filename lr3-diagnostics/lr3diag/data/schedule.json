@@ -1,0 +1,23 @@
+{
+  "vehicle": "2007 Land Rover LR3 (4.4L V8, ZF 6HP26 automatic, air suspension)",
+  "disclaimer": "Default intervals are conservative owner-community values, often shorter than the factory schedule. Check them against your owner's handbook / Passport to Service and change them to suit how you drive (towing, off-road, short trips). To override, copy this file to ~/.lr3diag/schedule.json and edit it.",
+  "items": [
+    {"key": "engine_oil",        "name": "Engine oil & filter",                     "miles": 7500,   "months": 12, "kind": "replace", "notes": "Use the grade/spec in the owner's handbook. Shorten the interval for towing or lots of short trips."},
+    {"key": "tire_rotation",     "name": "Tire rotation & pressure check",          "miles": 7500,   "months": 6,  "kind": "service", "notes": "Check TPMS sensors and spare at the same time."},
+    {"key": "brake_inspect",     "name": "Brake pads/rotors inspection",            "miles": 15000,  "months": 12, "kind": "inspect", "notes": "Includes the electronic parking brake (EPB) cable and actuator."},
+    {"key": "eas_inspect",       "name": "Air suspension (EAS) inspection",         "miles": 15000,  "months": 12, "kind": "inspect", "notes": "Air springs for cracking, lines for leaks, compressor run time/noise, and the dryer. Note ride-height drop after the truck sits overnight."},
+    {"key": "cabin_filter",      "name": "Cabin (pollen) filter",                   "miles": 15000,  "months": 12, "kind": "replace", "notes": ""},
+    {"key": "fluid_levels",      "name": "Fluid levels & leak check",               "miles": 7500,   "months": 6,  "kind": "inspect", "notes": "Coolant, power steering, brake, washer. Look for coolant leaks at the crossover pipe/valley."},
+    {"key": "engine_air_filter", "name": "Engine air filter",                       "miles": 30000,  "months": 24, "kind": "replace", "notes": "Check it more often on dusty trails."},
+    {"key": "brake_fluid",       "name": "Brake fluid flush",                       "miles": 30000,  "months": 24, "kind": "replace", "notes": "Changed on time rather than mileage, because the fluid absorbs moisture."},
+    {"key": "wipers",            "name": "Wiper blades",                            "miles": null,   "months": 12, "kind": "replace", "notes": ""},
+    {"key": "battery_test",      "name": "Battery load test",                       "miles": null,   "months": 12, "kind": "inspect", "notes": "The LR3 is very sensitive to low voltage. A weak battery causes odd fault messages (suspension, parking brake, HDC)."},
+    {"key": "drive_belt",        "name": "Accessory drive belt & tensioner",        "miles": 60000,  "months": 60, "kind": "inspect", "notes": ""},
+    {"key": "coolant",           "name": "Coolant drain & refill",                  "miles": 60000,  "months": 60, "kind": "replace", "notes": "Use the OAT coolant type given in the handbook. Don't mix coolant types."},
+    {"key": "transmission",      "name": "Transmission fluid & filter (ZF 6HP26)",  "miles": 60000,  "months": null, "kind": "replace", "notes": "The factory calls it 'filled for life'. Most specialists recommend changing the fluid, pan and filter every 60k to 70k miles."},
+    {"key": "transfer_case",     "name": "Transfer case oil",                       "miles": 60000,  "months": null, "kind": "replace", "notes": ""},
+    {"key": "front_diff",        "name": "Front differential oil",                  "miles": 60000,  "months": null, "kind": "replace", "notes": ""},
+    {"key": "rear_diff",         "name": "Rear differential oil",                   "miles": 60000,  "months": null, "kind": "replace", "notes": "Locking rear differentials need the correct specified oil."},
+    {"key": "spark_plugs",       "name": "Spark plugs",                             "miles": 100000, "months": null, "kind": "replace", "notes": ""}
+  ]
+}

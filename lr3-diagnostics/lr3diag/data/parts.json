@@ -1,0 +1,27 @@
+{
+  "_readme": "Quick links for maintenance parts. Fill in 'part_number' once you've confirmed it (from the parts catalog, your receipts, or the old part itself). Once a part number is set, search links use it instead of the description. Add your preferred shops under 'links'. Copy this file to ~/.lr3diag/parts.json to customise it.",
+  "vehicle_query": "2007 Land Rover LR3 4.4 V8",
+  "vendors": [
+    {"name": "Google",  "url": "https://www.google.com/search?q={q}"},
+    {"name": "Amazon",  "url": "https://www.amazon.com/s?k={q}"},
+    {"name": "eBay",    "url": "https://www.ebay.com/sch/i.html?_nkw={q}"}
+  ],
+  "parts": [
+    {"key": "oil_filter",    "name": "Oil filter",                 "for": "engine_oil",        "part_number": "", "query": "oil filter",            "links": []},
+    {"key": "engine_oil",    "name": "Engine oil",                 "for": "engine_oil",        "part_number": "", "query": "engine oil 5W-20",      "links": [], "notes": "Check the grade and approval in your owner's handbook."},
+    {"key": "drain_washer",  "name": "Oil drain plug washer",      "for": "engine_oil",        "part_number": "", "query": "oil drain plug washer", "links": []},
+    {"key": "air_filter",    "name": "Engine air filter",          "for": "engine_air_filter", "part_number": "", "query": "engine air filter",     "links": []},
+    {"key": "cabin_filter",  "name": "Cabin / pollen filter",      "for": "cabin_filter",      "part_number": "", "query": "cabin air filter",      "links": []},
+    {"key": "spark_plugs",   "name": "Spark plugs (x8)",           "for": "spark_plugs",       "part_number": "", "query": "spark plugs",           "links": []},
+    {"key": "brake_pads_f",  "name": "Front brake pads",           "for": "brake_inspect",     "part_number": "", "query": "front brake pads",      "links": []},
+    {"key": "brake_pads_r",  "name": "Rear brake pads",            "for": "brake_inspect",     "part_number": "", "query": "rear brake pads",       "links": []},
+    {"key": "brake_fluid",   "name": "Brake fluid (DOT 4)",        "for": "brake_fluid",       "part_number": "", "query": "DOT 4 brake fluid",     "links": []},
+    {"key": "coolant",       "name": "Coolant",                    "for": "coolant",           "part_number": "", "query": "coolant antifreeze",    "links": []},
+    {"key": "atf",           "name": "ATF + pan/filter kit (ZF 6HP26)", "for": "transmission", "part_number": "", "query": "ZF 6HP26 transmission filter pan kit", "links": []},
+    {"key": "wipers",        "name": "Wiper blades",               "for": "wipers",            "part_number": "", "query": "wiper blades",          "links": []},
+    {"key": "belt",          "name": "Accessory drive belt",       "for": "drive_belt",        "part_number": "", "query": "serpentine belt",       "links": []},
+    {"key": "battery",       "name": "Battery",                    "for": "battery_test",      "part_number": "", "query": "battery",               "links": []},
+    {"key": "air_spring_f",  "name": "Front air spring/strut",     "for": "eas_inspect",       "part_number": "", "query": "front air suspension strut", "links": []},
+    {"key": "air_spring_r",  "name": "Rear air spring",            "for": "eas_inspect",       "part_number": "", "query": "rear air spring",       "links": []}
+  ]
+}

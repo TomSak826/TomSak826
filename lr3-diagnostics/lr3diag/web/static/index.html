@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LR3 Diagnostics</title><link rel="stylesheet" href="/static/common.css"></head>
+<body>
+<main>
+  <div id="src" class="banner">Connecting…</div>
+  <section class="grid" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">
+    <a class="card" href="/diagnostics" style="text-decoration:none;color:inherit"><h2>Diagnostics</h2>
+      <div>Live engine data and trend charts, fuel-trim and charging checks, reading and clearing trouble codes.</div></a>
+    <a class="card" href="/maintenance" style="text-decoration:none;color:inherit"><h2>Maintenance</h2>
+      <div>What's due and overdue, the service log, and quick links for oil, filters and other parts.</div></a>
+    <a class="card" href="/offroad" style="text-decoration:none;color:inherit"><h2>Off-road</h2>
+      <div>Coolant and transmission temperature, ride height at each corner, gear, range, Terrain Response mode, tilt.</div></a>
+    <a class="card" href="/manual" style="text-decoration:none;color:inherit"><h2>Workshop manual</h2>
+      <div>Full-text search of your indexed workshop manual.</div></a>
+  </section>
+</main>
+<script src="/static/common.js"></script>
+<script>
+LR3.header("/");
+LR3.api("/api/info").then((i) => {
+  LR3.$("#src").innerHTML = i.source ? `Data source: <b>${LR3.esc(i.source)}</b>` + (i.error ? ` <span class="status critical"><span class="dot"></span>${LR3.esc(i.error)}</span>` : "")
+    : "No live data source. Start with <code>lr3 dash --source sim</code> or your adapter's port.";
+});
+</script>
+</body></html>

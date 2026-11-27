@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Workshop manual · LR3</title><link rel="stylesheet" href="/static/common.css">
+<style> mark { background: var(--warning); color: #191919; padding: 0 2px; border-radius: 2px; } pre { white-space: pre-wrap; font-family: inherit; font-size: 14px; } </style></head>
+<body>
+<main>
+  <form id="f" style="display:flex;gap:8px"><input id="q" placeholder='e.g. front air spring removal   or   "torque converter"' style="flex:1;font-size:16px;padding:10px">
+    <button class="primary">Search</button></form>
+  <div id="idx" class="muted" style="margin:8px 0 16px"></div>
+  <div id="hits"></div>
+  <div id="sec" class="card" style="display:none;margin-top:16px"></div>
+</main>
+<script src="/static/common.js"></script>
+<script>
+const { $, esc } = LR3;
+LR3.header("/manual");
+const hl = (s) => esc(s).replace(/\[/g, "<mark>").replace(/\]/g, "</mark>");
+async function run(q) {
+  history.replaceState(null, "", "/manual?q=" + encodeURIComponent(q));
+  const r = await LR3.api("/api/manual/search?q=" + encodeURIComponent(q));
+  $("#idx").textContent = r.indexed.length ? `Searching ${r.indexed.reduce((a, b) => a + b.sections, 0).toLocaleString()} sections in ${r.indexed.length} file(s).`
+    : "No manual indexed yet. Run:  lr3 manual index /path/to/workshop-manual/";
+  $("#hits").innerHTML = r.hits.length ? r.hits.map((h, i) => `<div class="card" style="margin-bottom:8px">
+      <a href="#" data-i="${i}"><b>${esc(h.title)}</b></a> <span class="pill">${esc(h.location)}</span>
+      <div class="muted">${esc(h.source.split(/[\\/]/).pop())}</div><div style="margin-top:4px">${hl(h.snippet)}</div></div>`).join("")
+    : (q ? `<div class="muted">No matches for “${esc(q)}”.</div>` : "");
+  $("#hits").querySelectorAll("a[data-i]").forEach((a) => a.onclick = async (e) => {
+    e.preventDefault(); const h = r.hits[a.dataset.i];
+    const s = await LR3.api(`/api/manual/section?source=${encodeURIComponent(h.source)}&location=${encodeURIComponent(h.location)}`);
+    $("#sec").style.display = "block";
+    $("#sec").innerHTML = `<h2>${esc(s.title)} · ${esc(s.location)}</h2><div class="muted">${esc(s.source)}</div><pre>${esc(s.body)}</pre>`;
+    $("#sec").scrollIntoView({ behavior: "smooth" });
+  });
+}
+$("#f").onsubmit = (e) => { e.preventDefault(); run($("#q").value); };
+const q0 = new URLSearchParams(location.search).get("q");
+if (q0) { $("#q").value = q0; run(q0); } else run("");
+</script>
+</body></html>

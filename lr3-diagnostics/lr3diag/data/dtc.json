@@ -1,0 +1,202 @@
+{
+ "P0101": {
+  "description": "Mass air flow sensor circuit range/performance",
+  "lr3_notes": "Clean the MAF with MAF cleaner and check for intake leaks between the MAF and the throttle body.",
+  "manual_query": "mass air flow sensor"
+ },
+ "P0102": {
+  "description": "Mass air flow sensor circuit low",
+  "lr3_notes": "Check the MAF connector and wiring.",
+  "manual_query": "mass air flow sensor"
+ },
+ "P0103": {
+  "description": "Mass air flow sensor circuit high",
+  "lr3_notes": "",
+  "manual_query": "mass air flow sensor"
+ },
+ "P0106": {
+  "description": "MAP/barometric pressure circuit range/performance",
+  "lr3_notes": "",
+  "manual_query": "manifold absolute pressure sensor"
+ },
+ "P0111": {
+  "description": "Intake air temperature sensor range/performance",
+  "lr3_notes": "",
+  "manual_query": "intake air temperature sensor"
+ },
+ "P0116": {
+  "description": "Engine coolant temperature sensor range/performance",
+  "lr3_notes": "",
+  "manual_query": "engine coolant temperature sensor"
+ },
+ "P0117": {
+  "description": "Engine coolant temperature sensor circuit low",
+  "lr3_notes": "",
+  "manual_query": "engine coolant temperature sensor"
+ },
+ "P0118": {
+  "description": "Engine coolant temperature sensor circuit high",
+  "lr3_notes": "",
+  "manual_query": "engine coolant temperature sensor"
+ },
+ "P0121": {
+  "description": "Throttle position sensor range/performance",
+  "lr3_notes": "",
+  "manual_query": "throttle body"
+ },
+ "P0128": {
+  "description": "Coolant temperature below thermostat regulating temperature",
+  "lr3_notes": "Usually the thermostat is stuck open. Confirm with a live log: the coolant never reaches about 88\u00b0C.",
+  "manual_query": "thermostat"
+ },
+ "P0131": {
+  "description": "O2 sensor circuit low voltage (bank 1 sensor 1)",
+  "lr3_notes": "",
+  "manual_query": "heated oxygen sensor"
+ },
+ "P0133": {
+  "description": "O2 sensor slow response (bank 1 sensor 1)",
+  "lr3_notes": "",
+  "manual_query": "heated oxygen sensor"
+ },
+ "P0151": {
+  "description": "O2 sensor circuit low voltage (bank 2 sensor 1)",
+  "lr3_notes": "",
+  "manual_query": "heated oxygen sensor"
+ },
+ "P0153": {
+  "description": "O2 sensor slow response (bank 2 sensor 1)",
+  "lr3_notes": "",
+  "manual_query": "heated oxygen sensor"
+ },
+ "P0171": {
+  "description": "System too lean (bank 1)",
+  "lr3_notes": "On the 4.4 V8, codes for both banks (P0171 + P0174) usually mean a vacuum leak: PCV/breather hoses, intake gaskets, brake booster hose. Check the MAF and fuel pressure next.",
+  "manual_query": "vacuum leak intake manifold PCV"
+ },
+ "P0172": {
+  "description": "System too rich (bank 1)",
+  "lr3_notes": "",
+  "manual_query": "fuel injector fuel pressure"
+ },
+ "P0174": {
+  "description": "System too lean (bank 2)",
+  "lr3_notes": "See P0171. If both banks are lean, suspect a shared cause.",
+  "manual_query": "vacuum leak intake manifold PCV"
+ },
+ "P0175": {
+  "description": "System too rich (bank 2)",
+  "lr3_notes": "",
+  "manual_query": "fuel injector fuel pressure"
+ },
+ "P0300": {
+  "description": "Random/multiple cylinder misfire detected",
+  "lr3_notes": "Check the coils and plugs first. A vacuum leak or low fuel pressure can also cause random misfires.",
+  "manual_query": "misfire ignition coil spark plug"
+ },
+ "P0301": {
+  "description": "Cylinder 1 misfire detected",
+  "lr3_notes": "Swap the coil with another cylinder and see whether the misfire follows it.",
+  "manual_query": "ignition coil spark plug"
+ },
+ "P0302": {
+  "description": "Cylinder 2 misfire detected",
+  "lr3_notes": "Swap the coil with another cylinder and see whether the misfire follows it.",
+  "manual_query": "ignition coil spark plug"
+ },
+ "P0303": {
+  "description": "Cylinder 3 misfire detected",
+  "lr3_notes": "Swap the coil with another cylinder and see whether the misfire follows it.",
+  "manual_query": "ignition coil spark plug"
+ },
+ "P0304": {
+  "description": "Cylinder 4 misfire detected",
+  "lr3_notes": "Swap the coil with another cylinder and see whether the misfire follows it.",
+  "manual_query": "ignition coil spark plug"
+ },
+ "P0305": {
+  "description": "Cylinder 5 misfire detected",
+  "lr3_notes": "Swap the coil with another cylinder and see whether the misfire follows it.",
+  "manual_query": "ignition coil spark plug"
+ },
+ "P0306": {
+  "description": "Cylinder 6 misfire detected",
+  "lr3_notes": "Swap the coil with another cylinder and see whether the misfire follows it.",
+  "manual_query": "ignition coil spark plug"
+ },
+ "P0307": {
+  "description": "Cylinder 7 misfire detected",
+  "lr3_notes": "Swap the coil with another cylinder and see whether the misfire follows it.",
+  "manual_query": "ignition coil spark plug"
+ },
+ "P0308": {
+  "description": "Cylinder 8 misfire detected",
+  "lr3_notes": "Swap the coil with another cylinder and see whether the misfire follows it.",
+  "manual_query": "ignition coil spark plug"
+ },
+ "P0420": {
+  "description": "Catalyst system efficiency below threshold (bank 1)",
+  "lr3_notes": "Rule out exhaust leaks and failing O2 sensors before replacing the catalyst.",
+  "manual_query": "catalytic converter"
+ },
+ "P0430": {
+  "description": "Catalyst system efficiency below threshold (bank 2)",
+  "lr3_notes": "Rule out exhaust leaks and failing O2 sensors before replacing the catalyst.",
+  "manual_query": "catalytic converter"
+ },
+ "P0442": {
+  "description": "EVAP system small leak detected",
+  "lr3_notes": "Check the fuel cap seal first.",
+  "manual_query": "evaporative emission"
+ },
+ "P0455": {
+  "description": "EVAP system large leak detected",
+  "lr3_notes": "Check the fuel cap and the EVAP hoses.",
+  "manual_query": "evaporative emission"
+ },
+ "P0456": {
+  "description": "EVAP system very small leak detected",
+  "lr3_notes": "",
+  "manual_query": "evaporative emission"
+ },
+ "P0500": {
+  "description": "Vehicle speed sensor malfunction",
+  "lr3_notes": "Speed comes from the ABS module. Check for ABS codes as well.",
+  "manual_query": "wheel speed sensor"
+ },
+ "P0505": {
+  "description": "Idle air control system malfunction",
+  "lr3_notes": "",
+  "manual_query": "throttle body idle"
+ },
+ "P0562": {
+  "description": "System voltage low",
+  "lr3_notes": "Battery or charging problem. The LR3 throws many unrelated faults when voltage is low.",
+  "manual_query": "battery charging system"
+ },
+ "P0563": {
+  "description": "System voltage high",
+  "lr3_notes": "",
+  "manual_query": "generator regulator"
+ },
+ "P0700": {
+  "description": "Transmission control system malfunction",
+  "lr3_notes": "The TCM has stored its own code. Read the transmission module with a Land Rover-capable tool (e.g. GAP IIDTool).",
+  "manual_query": "transmission control module"
+ },
+ "P0715": {
+  "description": "Input/turbine speed sensor circuit",
+  "lr3_notes": "",
+  "manual_query": "transmission speed sensor"
+ },
+ "P0730": {
+  "description": "Incorrect gear ratio",
+  "lr3_notes": "Check the fluid level and condition (ZF 6HP26).",
+  "manual_query": "transmission fluid level check"
+ },
+ "P0741": {
+  "description": "Torque converter clutch circuit performance/stuck off",
+  "lr3_notes": "",
+  "manual_query": "torque converter"
+ }
+}

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diagnostics · LR3</title><link rel="stylesheet" href="/static/common.css"></head>
+<body>
+<main>
+  <div id="src" class="banner">Connecting…</div>
+
+  <section><div id="tiles" class="grid tiles"></div></section>
+
+  <section>
+    <h2 class="sec">Trends <span class="muted">· last 2 minutes, hover for values</span></h2>
+    <div class="grid charts">
+      <div id="c-rpm"></div><div id="c-coolant"></div><div id="c-trim"></div>
+      <div id="c-volt"></div><div id="c-maf"></div><div id="c-load"></div>
+    </div>
+  </section>
+
+  <section class="grid" style="grid-template-columns:repeat(auto-fit,minmax(380px,1fr))">
+    <div class="card"><h2>Automatic checks</h2><div id="findings" class="muted">Collecting data…</div></div>
+    <div class="card"><h2>Trouble codes</h2>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <button id="read" class="primary">Read codes</button>
+        <button id="clear" class="danger">Clear codes…</button>
+      </div>
+      <div id="dtcs" class="muted">Codes come from the engine control module through generic OBD-II. Codes in the other Land Rover modules (air suspension, ABS, transmission, transfer box) need your GAP IIDTool.</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Recording</h2>
+    <div class="muted" style="margin-bottom:8px">The dashboard keeps the last ~5 minutes in memory. Download it as CSV and analyse it later with <code>lr3 analyze file.csv</code>. Record a baseline while the truck is healthy, so you know what normal looks like.</div>
+    <a href="/api/history.csv"><button>Download CSV</button></a>
+    <details style="margin-top:10px"><summary>Data table (last 20 samples)</summary><div id="table" style="overflow:auto"></div></details>
+  </section>
+</main>
+<script src="/static/common.js"></script>
+<script>
+const { $, esc, fmt, STATUS, statusHTML } = LR3;
+LR3.header("/diagnostics");
+
+const trim = (b) => (r) => (r[`stft${b}`] ?? null) == null || r[`ltft${b}`] == null ? null : r[`stft${b}`] + r[`ltft${b}`];
+const TILES = [
+  { key: "rpm", label: "Engine speed", unit: "rpm", digits: 0 },
+  { key: "speed", label: "Vehicle speed", unit: "km/h", digits: 0 },
+  { key: "coolant", label: "Coolant", unit: "°C", status: STATUS.coolant },
+  { key: "iat", label: "Intake air", unit: "°C" },
+  { key: "load", label: "Engine load", unit: "%", digits: 0 },
+  { key: "throttle", label: "Throttle", unit: "%", digits: 0 },
+  { key: "maf", label: "Mass air flow", unit: "g/s" },
+  { key: "trim1", label: "Fuel trim B1 (S+L)", unit: "%", value: trim(1), status: STATUS.trim },
+  { key: "trim2", label: "Fuel trim B2 (S+L)", unit: "%", value: trim(2), status: STATUS.trim },
+  { key: "voltage", label: "System voltage", unit: "V", status: STATUS.voltage, digits: 2 },
+];
+$("#tiles").innerHTML = TILES.map((t) => `<div class="card tile" id="t-${t.key}"><div class="label">${esc(t.label)}</div><div class="value">—</div><div class="st"></div></div>`).join("");
+
+const charts = [
+  new LR3.TrendChart($("#c-rpm"), { title: "Engine speed", unit: "rpm", series: [{ key: "rpm", label: "RPM" }], min: 0 }),
+  new LR3.TrendChart($("#c-coolant"), { title: "Coolant temperature", unit: "°C", series: [{ key: "coolant", label: "Coolant" }], refs: [110] }),
+  new LR3.TrendChart($("#c-trim"), { title: "Total fuel trim (STFT + LTFT)", unit: "%", min: -12, max: 12, refs: [-20, 20],
+    series: [{ key: "trim1", label: "Bank 1", short: "B1", value: trim(1) }, { key: "trim2", label: "Bank 2", short: "B2", value: trim(2) }] }),
+  new LR3.TrendChart($("#c-volt"), { title: "System voltage", unit: "V", series: [{ key: "voltage", label: "Voltage" }], min: 12, max: 15 }),
+  new LR3.TrendChart($("#c-maf"), { title: "Mass air flow", unit: "g/s", series: [{ key: "maf", label: "MAF" }], min: 0 }),
+  new LR3.TrendChart($("#c-load"), { title: "Engine load", unit: "%", series: [{ key: "load", label: "Load" }], min: 0, max: 100 }),
+];
+
+let latest = null, lastDraw = 0;
+LR3.live((added, all) => {
+  latest = all[all.length - 1];
+  const now = performance.now();
+  if (now - lastDraw < 240) return; // ~4 fps is plenty
+  lastDraw = now;
+  for (const t of TILES) {
+    const el = $(`#t-${t.key}`), v = t.value ? t.value(latest) : latest[t.key];
+    const [s, u] = fmt(t.unit, v, t.digits);
+    el.querySelector(".value").innerHTML = `${esc(s)}<span class="unit">${esc(u)}</span>`;
+    el.querySelector(".st").innerHTML = t.status && typeof v === "number" ? statusHTML(t.status(v, latest)) : "";
+  }
+  charts.forEach((c) => c.update(all));
+  const cols = ["t", "rpm", "speed", "coolant", "stft1", "ltft1", "stft2", "ltft2", "maf", "voltage"];
+  $("#table").innerHTML = `<table><tr>${cols.map((c) => `<th class="num">${c}</th>`).join("")}</tr>${all.slice(-20).reverse().map((r) =>
+    `<tr>${cols.map((c) => `<td class="num">${r[c] ?? "—"}</td>`).join("")}</tr>`).join("")}</table><div class="muted">Raw metric values.</div>`;
+}, { onStatus: (err) => err && ($("#src").innerHTML = `<span class="status critical"><span class="dot"></span>${esc(err)}</span>`) });
+
+LR3.api("/api/info").then((i) => {
+  $("#src").innerHTML = i.source ? `Data source: <b>${esc(i.source)}</b>` : "No live data source. Start the server with <code>--source</code>.";
+  if (!i.supports_dtcs) { $("#read").disabled = $("#clear").disabled = true; }
+});
+
+const SEV = { FAULT: ["critical", "Fault"], WARN: ["warning", "Warning"], INFO: ["none", "Info"] };
+async function refreshFindings() {
+  try {
+    const f = await LR3.api("/api/findings");
+    $("#findings").innerHTML = f.length ? f.map((x) => `<div style="margin-bottom:10px">${statusHTML(SEV[x.severity])} <b>${esc(x.title)}</b>
+      <div class="muted">${esc(x.detail)}</div>
+      ${x.manual_query ? `<a href="/manual?q=${encodeURIComponent(x.manual_query)}">Search manual: “${esc(x.manual_query)}”</a>` : ""}</div>`).join("")
+      : `${statusHTML(["good", "No problems found"])} <div class="muted">Checks run on the buffered data. Some need a warm engine or some driving.</div>`;
+  } catch (e) { $("#findings").textContent = e.message; }
+}
+setInterval(refreshFindings, 5000); setTimeout(refreshFindings, 1500);
+
+function renderCodes(codes) {
+  $("#dtcs").innerHTML = codes.length ? `<table>${codes.map((c) => `<tr><td><b>${esc(c.code)}</b><div class="muted">${esc(c.type)}</div></td>
+    <td>${esc(c.description)}${c.lr3_notes ? `<div class="muted">${esc(c.lr3_notes)}</div>` : ""}
+    <a href="/manual?q=${encodeURIComponent(c.manual_query)}">Search manual</a></td></tr>`).join("")}</table>`
+    : statusHTML(["good", "No stored codes"]);
+}
+$("#read").onclick = async () => { $("#dtcs").textContent = "Reading…"; try { renderCodes(await LR3.api("/api/dtcs")); } catch (e) { $("#dtcs").textContent = e.message; } };
+$("#clear").onclick = async () => {
+  if (!confirm("Clear all engine trouble codes?\n\nThis also resets the emissions readiness monitors, so the truck will fail an emissions test until it has been driven enough for them to complete again. Write the codes down first.")) return;
+  try { await LR3.api("/api/dtcs/clear", { confirm: true }); renderCodes([]); } catch (e) { $("#dtcs").textContent = e.message; }
+};
+</script>
+</body></html>
