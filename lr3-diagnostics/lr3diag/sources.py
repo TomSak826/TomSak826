@@ -29,7 +29,7 @@ class Channel:
     name: str
     label: str
     unit: str          # metric unit; "" for text/enumerated values
-    group: str         # engine | fuel | electrical | driveline | suspension
+    group: str         # engine | fuel | electrical | driveline | suspension | exhaust
 
 
 CHANNELS: dict[str, Channel] = {c.name: c for c in [
@@ -41,6 +41,14 @@ CHANNELS: dict[str, Channel] = {c.name: c for c in [
     Channel("terrain", "Terrain Response mode", "", "driveline"),
     Channel("rear_locker", "Rear diff lock engagement", "%", "driveline"),
     Channel("trans_temp", "Transmission fluid temperature", "°C", "driveline"),
+    Channel("lambda1", "Upstream lambda, bank 1 (wideband, sensor 1)", "λ", "exhaust"),
+    Channel("lambda2", "Upstream lambda, bank 2 (wideband, sensor 1)", "λ", "exhaust"),
+    Channel("o2_b1s2", "Downstream O2 voltage, bank 1 (sensor 2)", "V", "exhaust"),
+    Channel("o2_b2s2", "Downstream O2 voltage, bank 2 (sensor 2)", "V", "exhaust"),
+    Channel("stft_b1s2", "Downstream trim, bank 1", "%", "exhaust"),
+    Channel("stft_b2s2", "Downstream trim, bank 2", "%", "exhaust"),
+    Channel("o2_heater_b1s1", "Upstream O2 heater, bank 1", "", "exhaust"),
+    Channel("o2_heater_b2s1", "Upstream O2 heater, bank 2", "", "exhaust"),
     Channel("height_fl", "Ride height front left", "mm", "suspension"),
     Channel("height_fr", "Ride height front right", "mm", "suspension"),
     Channel("height_rl", "Ride height rear left", "mm", "suspension"),
@@ -145,13 +153,15 @@ def _gap_value(rule: dict, state: str, value: str):
         return value.strip()
 
 
-def read_gap_log(path: str | Path, mapping: dict | None = None, step: float = 0.5) -> tuple[list[dict], dict]:
+def read_gap_log(path: str | Path, mapping: dict | None = None, step: float | None = None) -> tuple[list[dict], dict]:
     """Read a GAP IIDTool live-data CSV export.
 
     GAP logs put each channel in its own block of columns
     (``name, time, state, value, , ,``), and every channel has its own
     timestamps. The channels are merged onto a common time grid of ``step``
-    seconds, holding each channel's most recent value.
+    seconds, holding each channel's most recent value. By default the step
+    follows the fastest channel's sample rate (0.1-0.5 s), so fast signals
+    such as O2 sensors aren't under-sampled.
     Returns (rows, info) where info has the VIN/model/date header lines.
     """
     import bisect
@@ -184,6 +194,14 @@ def read_gap_log(path: str | Path, mapping: dict | None = None, step: float = 0.
     for s in series.values():
         s.sort(key=lambda x: x[0])
     times = {ch: [x[0] for x in s] for ch, s in series.items()}
+    if step is None:
+        gaps = []
+        for ts in times.values():
+            d = sorted(b - a for a, b in zip(ts, ts[1:]) if b > a)
+            if len(d) >= 10:
+                gaps.append(d[len(d) // 2])
+        step = min(0.5, max(0.1, round(min(gaps, default=0.5) * 20) / 20))
+    info["step"] = step
     start = max(s[0][0] for s in series.values())   # wait until every channel has a value
     end = max(s[-1][0] for s in series.values())
     rows = []

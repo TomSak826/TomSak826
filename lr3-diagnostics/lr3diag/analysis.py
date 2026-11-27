@@ -270,3 +270,104 @@ def analyze(rows) -> list[Finding]:
         findings.extend(chk(rows))
     order = {"FAULT": 0, "WARN": 1, "INFO": 2}
     return sorted(findings, key=lambda f: order[f.severity])
+
+
+# --------------------------------------------------------------------------
+# Catalytic converter comparison (bank 1 vs bank 2)
+# --------------------------------------------------------------------------
+# A working converter stores oxygen, so its downstream (sensor 2) O2 sensor
+# sits fairly steady (typically ~0.6-0.8 V) while the upstream sensor
+# oscillates with the engine's fuel control. A worn converter lets the
+# oscillation through, so the downstream sensor starts to switch like the
+# upstream one. Comparing the two banks gives a built-in reference.
+
+def _crossings(vals, level):
+    n, side = 0, None
+    for v in vals:
+        s = v > level
+        if side is not None and s != side:
+            n += 1
+        side = s
+    return n
+
+
+def steady_segments(rows, min_seconds=10.0):
+    """Stretches of steady closed-loop running: both upstream lambdas near 1,
+    the throttle open, and at least 3 s after any fuel cut (lambda > 1.15)."""
+    segs, cur, cut_until = [], [], -1.0
+    for r in rows:
+        l1, l2 = r.get("lambda1"), r.get("lambda2")
+        t = r.get("t") or 0
+        if l1 is None or l2 is None or r.get("o2_b1s2") is None or r.get("o2_b2s2") is None:
+            ok = False
+        else:
+            if l1 > 1.15 or l2 > 1.15:
+                cut_until = t + 3
+            ok = (t > cut_until and 0.94 <= l1 <= 1.06 and 0.94 <= l2 <= 1.06
+                  and (r.get("throttle") is None or r["throttle"] > 3))
+        if ok:
+            cur.append(r)
+        else:
+            if cur and cur[-1]["t"] - cur[0]["t"] >= min_seconds:
+                segs.append(cur)
+            cur = []
+    if cur and cur[-1]["t"] - cur[0]["t"] >= min_seconds:
+        segs.append(cur)
+    return segs
+
+
+def catalyst_comparison(rows) -> dict | None:
+    segs = steady_segments(rows)
+    if not segs:
+        return None
+    dur = sum(s[-1]["t"] - s[0]["t"] for s in segs)
+    out = {"segments": len(segs), "seconds": dur}
+    for b in (1, 2):
+        up = [r[f"lambda{b}"] for s in segs for r in s]
+        dn = [r[f"o2_b{b}s2"] for s in segs for r in s]
+        up_x = sum(_crossings([r[f"lambda{b}"] for r in s], 1.0) for s in segs)
+        dn_x = sum(_crossings([r[f"o2_b{b}s2"] for r in s], 0.45) for s in segs)
+        out[b] = {
+            "lambda_mean": st.fmean(up), "lambda_sd": st.pstdev(up),
+            "up_switch_per_min": up_x / dur * 60,
+            "down_mean": st.fmean(dn), "down_sd": st.pstdev(dn),
+            "down_switch_per_min": dn_x / dur * 60,
+            "down_lean_pct": 100 * sum(v < 0.45 for v in dn) / len(dn),
+            "switch_ratio": dn_x / max(up_x, 1),
+        }
+    return out
+
+
+def check_catalyst(rows) -> list[Finding]:
+    c = catalyst_comparison(rows)
+    if not c:
+        return []
+    b1, b2 = c[1], c[2]
+    note = (f" Based on {c['seconds'] / 60:.1f} min of steady closed-loop driving in {c['segments']} stretches. "
+            "This compares the banks with each other. The engine computer's own catalyst test runs under "
+            "specific conditions, so read its Mode 06 result to confirm.")
+    stats = (f"Downstream sensor: B1 {b1['down_mean']:.2f} V ± {b1['down_sd']:.2f}, switching {b1['down_switch_per_min']:.0f}/min; "
+             f"B2 {b2['down_mean']:.2f} V ± {b2['down_sd']:.2f}, switching {b2['down_switch_per_min']:.0f}/min. "
+             f"Switch ratio (downstream ÷ upstream): B1 {b1['switch_ratio']:.2f}, B2 {b2['switch_ratio']:.2f}.")
+    out = []
+    for bank, me, other in ((1, b1, b2), (2, b2, b1)):
+        if me["switch_ratio"] > 0.5 or (me["down_sd"] > 0.25 and me["down_sd"] > 1.6 * other["down_sd"]):
+            out.append(Finding(
+                "WARN", f"Bank {bank} catalytic converter looks less effective than bank {3 - bank}",
+                f"Bank {bank}'s downstream O2 sensor follows the upstream oscillation much more than bank "
+                f"{3 - bank}'s does, which is the pattern of a converter that has lost oxygen-storage capacity. "
+                + stats + f" Before replacing it, rule out an exhaust leak ahead of the bank-{bank} downstream "
+                "sensor and a failing sensor." + note,
+                manual_query="catalytic converter exhaust leak heated oxygen sensor",
+                dtcs=["P0420"] if bank == 1 else ["P0430"]))
+    if not out:
+        out.append(Finding(
+            "INFO", "Both catalytic converters behave alike: neither shows the failed-converter pattern",
+            "Both downstream O2 sensors stay mostly steady and high while the upstream sensors oscillate, "
+            "which means both converters are still storing oxygen. Neither bank's downstream sensor is "
+            "switching more than the other's. " + stats + note,
+            manual_query="catalytic converter monitor"))
+    return out
+
+
+CHECKS.append(check_catalyst)

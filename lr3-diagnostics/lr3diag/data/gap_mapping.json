@@ -9,8 +9,19 @@
     "Short term fuel trim (bank 2)": "stft2",
     "Long term fuel trim (bank 1)": "ltft1",
     "Long term fuel trim (bank 2)": "ltft2",
-    "Vehicle speed": {"channel": "speed", "scale": 1.609344, "_note": "GAP exported mph on this phone; set scale to 1.0 if your app is set to km/h"},
-
+    "Vehicle speed": {
+      "channel": "speed",
+      "scale": 1.609344,
+      "_note": "GAP exported mph on this phone; set scale to 1.0 if your app is set to km/h"
+    },
+    "Equivalence ratio (lambda), bank 1 - sensor 1 (wide range oxygen sensor)": "lambda1",
+    "Equivalence ratio (lambda), bank 2 - sensor 1 (wide range oxygen sensor)": "lambda2",
+    "Oxygen sensor output voltage, bank 1 - sensor 2": "o2_b1s2",
+    "Oxygen sensor output voltage, bank 2 - sensor 2": "o2_b2s2",
+    "Short term fuel trim sensor 2 bank 1": "stft_b1s2",
+    "Short term fuel trim sensor 2 bank 2": "stft_b2s2",
+    "Universal heated exhaust gas oxygen heater pre-catalytic, bank 1": "o2_heater_b1s1",
+    "Universal heated exhaust gas oxygen heater pre-catalytic, bank 2": "o2_heater_b2s1",
     "Engine speed": "rpm",
     "Engine coolant temperature": "coolant",
     "Intake air temperature": "iat",
