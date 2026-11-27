@@ -14,6 +14,10 @@
       "scale": 1.609344,
       "_note": "GAP exported mph on this phone; set scale to 1.0 if your app is set to km/h"
     },
+    "Engine Speed Petrol": "rpm",
+    "Lambda - bank 1": "lambda1",
+    "Lambda - bank 2": "lambda2",
+    "Air flow meter sensor": "maf_mv",
     "Equivalence ratio (lambda), bank 1 - sensor 1 (wide range oxygen sensor)": "lambda1",
     "Equivalence ratio (lambda), bank 2 - sensor 1 (wide range oxygen sensor)": "lambda2",
     "Oxygen sensor output voltage, bank 1 - sensor 2": "o2_b1s2",

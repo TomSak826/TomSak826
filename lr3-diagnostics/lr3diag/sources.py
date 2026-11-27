@@ -41,6 +41,7 @@ CHANNELS: dict[str, Channel] = {c.name: c for c in [
     Channel("terrain", "Terrain Response mode", "", "driveline"),
     Channel("rear_locker", "Rear diff lock engagement", "%", "driveline"),
     Channel("trans_temp", "Transmission fluid temperature", "°C", "driveline"),
+    Channel("maf_mv", "MAF sensor signal (raw voltage, not airflow)", "mV", "engine"),
     Channel("lambda1", "Upstream lambda, bank 1 (wideband, sensor 1)", "λ", "exhaust"),
     Channel("lambda2", "Upstream lambda, bank 2 (wideband, sensor 1)", "λ", "exhaust"),
     Channel("o2_b1s2", "Downstream O2 voltage, bank 1 (sensor 2)", "V", "exhaust"),

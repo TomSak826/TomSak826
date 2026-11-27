@@ -51,10 +51,13 @@ def _has(rows, name) -> bool:
 
 
 def _is_idle(r):
-    if r.get("rpm") is not None:
-        return (r.get("speed") or 0) < 2 and r["rpm"] > 400 and (r.get("throttle") or 0) < 20
-    # No RPM logged (e.g. a GAP log without engine speed): stopped with the throttle closed.
-    return (r.get("speed") or 0) < 2 and (r.get("throttle") or 0) < 20
+    speed, thr, rpm = r.get("speed"), r.get("throttle"), r.get("rpm")
+    if speed is None and thr is None:
+        # Only engine speed logged: warm idle on the 4.4 V8 sits around 650-700 rpm.
+        return rpm is not None and 400 < rpm < 900
+    if rpm is not None and rpm <= 400:
+        return False
+    return (speed or 0) < 2 and (thr or 0) < 20
 
 
 def _is_cruise(r):
@@ -81,16 +84,24 @@ TRIM_BANDS = [
     ("Moderate load", lambda r: 30 <= (r.get("throttle") or 0) < 50),
     ("Heavy load", lambda r: (r.get("throttle") or 0) >= 50),
 ]
+# When the log has engine speed but no throttle position.
+RPM_BANDS = [
+    ("Idle", _is_idle),
+    ("900-2000 rpm", lambda r: 900 <= (r.get("rpm") or 0) < 2000),
+    ("2000+ rpm", lambda r: (r.get("rpm") or 0) >= 2000),
+]
 MIN_BAND_SAMPLES = 20
 
 
 def trim_breakdown(rows) -> list[dict]:
     """Average short-term, long-term and total fuel trim per bank for each driving condition."""
     use, _ = _usable(rows)
-    if not _has(rows, "throttle"):
-        bands = [("Idle", _is_idle), ("Cruise", _is_cruise)]
-    else:
+    if _has(rows, "throttle"):
         bands = TRIM_BANDS
+    elif _has(rows, "rpm"):
+        bands = RPM_BANDS
+    else:
+        bands = [("Idle", _is_idle), ("Cruise", _is_cruise)]
     out = []
     for name, cond in bands + [("All", lambda r: True)]:
         sel = [r for r in use if cond(r)]
@@ -117,7 +128,7 @@ def check_fuel_trims(rows) -> list[Finding]:
 
     all1, all2 = tot("All", 1), tot("All", 2)
     idle1, idle2 = tot("Idle", 1), tot("Idle", 2)
-    load_band = next((n for n in ("Heavy load", "Moderate load", "Cruise", "Light load / cruise")
+    load_band = next((n for n in ("Heavy load", "Moderate load", "2000+ rpm", "Cruise", "Light load / cruise", "900-2000 rpm")
                       if tot(n, 1) is not None and tot(n, 2) is not None), None)
     load1, load2 = (tot(load_band, 1), tot(load_band, 2)) if load_band else (None, None)
     worst = max((abs(v) for b in bands.values() for k, v in b.items() if k.startswith("total")), default=0)
@@ -150,6 +161,11 @@ def check_fuel_trims(rows) -> list[Finding]:
                    "unlikely. When both banks need more fuel as demand rises, the usual suspects are "
                    "fuel delivery (weak pump, restricted filter or low fuel pressure) or a MAF sensor "
                    "under-reading airflow.")
+        elif load_band is None:
+            title = "Both banks lean: shared cause"
+            why = ("Both banks add a similar amount of extra fuel. The log doesn't cover enough driving "
+                   "conditions to say whether it's worst at idle (a vacuum leak) or under load (fuel "
+                   "delivery or MAF).")
         else:
             title = "Both banks lean in every condition: shared cause"
             why = ("Both banks add a similar amount of fuel at idle and under load. Common causes are a "

@@ -199,6 +199,34 @@ def cmd_analyze(args):
             print(f"    Manual: lr3 manual search {f.manual_query}")
 
 
+def _load_any(path, mapping=None):
+    from .sources import is_gap_log, read_gap_log, read_log
+    if is_gap_log(path):
+        rows, info = read_gap_log(path, mapping)
+        return rows, next((h for h in info["header"] if h.startswith("Log ")), path)
+    return read_log(path, mapping), path
+
+
+def cmd_compare(args):
+    """Compare fuel trims between two logs, e.g. before and after a repair."""
+    (ra, la), (rb, lb) = _load_any(args.before), _load_any(args.after)
+    ba = {b["band"]: b for b in analysis.trim_breakdown(ra)}
+    bb = {b["band"]: b for b in analysis.trim_breakdown(rb)}
+    print(f"BEFORE: {la}\nAFTER:  {lb}\n")
+    print("Total fuel trim (short + long term, %). Only conditions present in both logs are compared.")
+    print(f"  {'condition':<22}{'B1 before':>10}{'after':>8}{'change':>8}   {'B2 before':>10}{'after':>8}{'change':>8}")
+    shared = [n for n in ba if n in bb and "total1" in ba[n] and "total1" in bb[n]]
+    for n in shared:
+        a, b = ba[n], bb[n]
+        print(f"  {n:<22}{a['total1']:>+10.1f}{b['total1']:>+8.1f}{b['total1'] - a['total1']:>+8.1f}"
+              f"   {a['total2']:>+10.1f}{b['total2']:>+8.1f}{b['total2'] - a['total2']:>+8.1f}")
+    only = sorted((set(ba) | set(bb)) - set(shared))
+    if only:
+        print(f"\n  Not comparable (missing from one log or too little data): {', '.join(only)}")
+    print("\n  Band definitions depend on the channels each log has. Compare like with like: "
+          "log the same channels and a similar drive.")
+
+
 def cmd_dtc(args):
     for code in args.codes:
         info = dtc.lookup(code)
@@ -251,6 +279,8 @@ def build_parser() -> argparse.ArgumentParser:
             x.add_argument("-y", "--yes", action="store_true")
 
     x = sub.add_parser("analyze", help="analyse a recorded CSV log"); x.add_argument("file"); x.add_argument("--mapping", help="column mapping JSON for third-party logs"); x.set_defaults(fn=cmd_analyze)
+    x = sub.add_parser("compare", help="compare fuel trims between two logs (before/after a repair)")
+    x.add_argument("before"); x.add_argument("after"); x.set_defaults(fn=cmd_compare)
     x = sub.add_parser("dtc", help="look up trouble codes"); x.add_argument("codes", nargs="+"); x.set_defaults(fn=cmd_dtc)
 
     x = sub.add_parser("dash", help="start the web dashboards")

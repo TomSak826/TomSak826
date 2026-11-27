@@ -26,3 +26,16 @@ def test_charging():
 def test_misfire_points_at_bank2():
     f = [f for f in analysis.analyze(drive("misfire")) if "idle" in f.title.lower()]
     assert f and "bank-2" in f[0].detail
+
+
+def test_rpm_only_log_bands():
+    """A log with engine speed but no road speed/throttle must not call everything idle."""
+    rows = []
+    for i in range(2000):
+        t = i * 0.25
+        rpm = 680 if (i // 200) % 2 == 0 else 1600
+        trim = 8.0 if rpm < 900 else 14.0
+        rows.append({"t": t, "rpm": rpm, "stft1": 0.0, "ltft1": trim, "stft2": 0.0, "ltft2": trim})
+    bands = {b["band"]: b for b in analysis.trim_breakdown(rows)}
+    assert abs(bands["Idle"]["total1"] - 8.0) < 0.01
+    assert abs(bands["900-2000 rpm"]["total1"] - 14.0) < 0.01
