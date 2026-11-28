@@ -1,0 +1,15 @@
+{
+  "name": "LR3 Diagnostics",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+  "postCreateCommand": "pip install -e './lr3-diagnostics[all]'",
+  "postAttachCommand": {
+    "dashboard": "cd lr3-diagnostics && lr3 dash --source sim"
+  },
+  "forwardPorts": [8333],
+  "portsAttributes": {
+    "8333": { "label": "LR3 dashboards", "onAutoForward": "openBrowser" }
+  },
+  "customizations": {
+    "vscode": { "extensions": ["ms-python.python"] }
+  }
+}

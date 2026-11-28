@@ -9,6 +9,12 @@ A personal diagnostics toolkit for a **2007 Land Rover LR3** (4.4 V8). It covers
 
 It needs no third-party Python packages except `pypdf` (for PDF manuals) and `pyserial` (for USB/Bluetooth adapters). A built-in **simulator** lets you try everything without the truck.
 
+## Run it on GitHub (no install)
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/TomSak826/TomSak826?ref=claude/lr3-diagnostics-tool-abmafb)
+
+Click the button and then **Create codespace**. After a couple of minutes the tool is installed and the dashboards start with the simulator; a browser tab opens on them. If no tab opens, use the **Ports** tab → port 8333 → globe icon. To use your own GAP log, drag the CSV into the file list, press Ctrl+C in the terminal, and run `lr3 dash --source replay:yourlog.csv@4`.
+
 ## Quick start
 
 ```bash
